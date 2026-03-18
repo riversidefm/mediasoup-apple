@@ -29,7 +29,7 @@ let package = Package(
         .binaryTarget(
             name: "WebRTC",
             url: "https://github.com/riversidefm/mediasoup-apple/releases/download/1.0.23/WebRTC.xcframework.zip",
-            checksum: "bfa5131f8e873eb9af5ea9d1c1c9859630702f9cd0c6318f80a403b3a5e0cb56"
+            checksum: "bdc6f2a80c3dca13743a7e3ab19dad044058a6b2efabec98a5d1aed3c39794b7"
         )
     ]
 )
