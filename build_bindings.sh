@@ -24,7 +24,7 @@ xcodebuild -project "${PROJECT_NAME}.xcodeproj" \
 xcodebuild -project "${PROJECT_NAME}.xcodeproj" \
     -scheme "${FRAMEWORK_NAME}" \
     -configuration Release \
-    -arch x86_64 -arch arm64 only_active_arch=no \
+    -arch arm64 only_active_arch=no \
     -sdk "iphonesimulator" \
     -derivedDataPath "${BUILD_DIR}"
 

@@ -348,14 +348,11 @@ for str in ${gn_arguments[@]}; do
 done
 platform_args='target_environment="device" target_cpu="arm64"'
 gn gen $BUILD_DIR/WebRTC/device/arm64 --ide=xcode --args="${platform_args}${gn_args}"
-platform_args='target_environment="simulator" target_cpu="x64"'
-gn gen $BUILD_DIR/WebRTC/simulator/x64 --ide=xcode --args="${platform_args}${gn_args}"
 platform_args='target_environment="simulator" target_cpu="arm64"'
 gn gen $BUILD_DIR/WebRTC/simulator/arm64 --ide=xcode --args="${platform_args}${gn_args}"
 
 cd $BUILD_DIR/WebRTC
 ninja -C device/arm64 sdk
-ninja -C simulator/x64 sdk
 ninja -C simulator/arm64 sdk
 
 cd $BUILD_DIR/WebRTC
@@ -363,16 +360,6 @@ rm -rf simulator/WebRTC.framework
 rm -rf simulator/WebRTC.dSYM
 cp -R simulator/arm64/WebRTC.framework simulator/WebRTC.framework
 cp -R simulator/arm64/WebRTC.dSYM simulator/WebRTC.dSYM
-rm simulator/WebRTC.framework/WebRTC
-lipo -create \
-	simulator/arm64/WebRTC.framework/WebRTC \
-	simulator/x64/WebRTC.framework/WebRTC \
-	-output simulator/WebRTC.framework/WebRTC
-
-lipo -create \
-    simulator/arm64/WebRTC.dSYM/Contents/Resources/DWARF/WebRTC \
-    simulator/x64/WebRTC.dSYM/Contents/Resources/DWARF/WebRTC \
-    -output simulator/WebRTC.dSYM/Contents/Resources/DWARF/WebRTC
 
 cd $BUILD_DIR/WebRTC
 
@@ -422,15 +409,6 @@ function rebuildLMSC() {
 		-DCMAKE_OSX_SYSROOT="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk"
 	make -C $BUILD_DIR/libmediasoupclient/device/arm64
 
-	cmake . -B $BUILD_DIR/libmediasoupclient/simulator/x64 \
-		${lmsc_cmake_args} \
-		-DLIBWEBRTC_BINARY_PATH=$BUILD_DIR/WebRTC/simulator/x64/WebRTC.framework/WebRTC \
-		-DIOS_SDK=iphonesimulator \
-		-DIOS_ARCHS="x86_64" \
-		-DPLATFORM=SIMULATOR64 \
-		-DCMAKE_OSX_SYSROOT="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk"
-	make -C $BUILD_DIR/libmediasoupclient/simulator/x64
-
 	cmake . -B $BUILD_DIR/libmediasoupclient/simulator/arm64 \
 		${lmsc_cmake_args} \
 		-DLIBWEBRTC_BINARY_PATH=$BUILD_DIR/WebRTC/simulator/arm64/WebRTC.framework/WebRTC \
@@ -440,16 +418,12 @@ function rebuildLMSC() {
 		-DCMAKE_OSX_SYSROOT="/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk"
 	make -C $BUILD_DIR/libmediasoupclient/simulator/arm64
 
-	# Create a FAT libmediasoup / libsdptransform library
+	# Copy simulator arm64 libraries
 	mkdir -p $BUILD_DIR/libmediasoupclient/simulator/fat
-	lipo -create \
-		$BUILD_DIR/libmediasoupclient/simulator/x64/libmediasoupclient/libmediasoupclient.a \
-		$BUILD_DIR/libmediasoupclient/simulator/arm64/libmediasoupclient/libmediasoupclient.a \
-		-output $BUILD_DIR/libmediasoupclient/simulator/fat/libmediasoupclient.a
-	lipo -create \
-		$BUILD_DIR/libmediasoupclient/simulator/x64/libmediasoupclient/libsdptransform/libsdptransform.a \
-		$BUILD_DIR/libmediasoupclient/simulator/arm64/libmediasoupclient/libsdptransform/libsdptransform.a \
-		-output $BUILD_DIR/libmediasoupclient/simulator/fat/libsdptransform.a
+	cp $BUILD_DIR/libmediasoupclient/simulator/arm64/libmediasoupclient/libmediasoupclient.a \
+		$BUILD_DIR/libmediasoupclient/simulator/fat/libmediasoupclient.a
+	cp $BUILD_DIR/libmediasoupclient/simulator/arm64/libmediasoupclient/libsdptransform/libsdptransform.a \
+		$BUILD_DIR/libmediasoupclient/simulator/fat/libsdptransform.a
 
 	if [ "$NO_INTERACTIVE" = false ]; then
 		xcodebuild -create-xcframework \
