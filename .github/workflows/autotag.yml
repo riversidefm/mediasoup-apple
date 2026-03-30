@@ -31,10 +31,17 @@ jobs:
       pull-requests: read
 
     steps:
+      - name: Generate harbor-bot token
+        id: harbor-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.HARBOR_APP_ID }}
+          private-key: ${{ secrets.HARBOR_PRIVATE_KEY }}
+
       - name: Decide release trigger
         id: release-trigger
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.harbor-token.outputs.token }}
           EVENT_NAME: ${{ github.event_name }}
           FORCE_RELEASE: ${{ inputs.force_release }}
           REQUESTED_BUMP: ${{ inputs.bump }}
@@ -79,6 +86,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          token: ${{ steps.harbor-token.outputs.token }}
 
       - name: Determine version
         if: steps.release-trigger.outputs.skip != 'true'
@@ -210,8 +218,8 @@ jobs:
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "harbor-bot[bot]"
+          git config --global user.email "harbor-bot[bot]@users.noreply.github.com"
 
           git add Package.swift
           git commit -m "Release ${TAG}"
@@ -221,7 +229,7 @@ jobs:
       - name: Create GitHub Release
         if: steps.release-trigger.outputs.skip != 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.harbor-token.outputs.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           gh release create "${TAG}" \
