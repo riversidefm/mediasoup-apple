@@ -1,22 +1,6 @@
 #!/bin/bash
 set -e
 
-# Parse arguments
-INCLUDE_DSYM=false
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --include-dsym)
-      INCLUDE_DSYM=true
-      shift
-      ;;
-    *)
-      echo "Unknown option: $1"
-      echo "Usage: $0 [--include-dsym]"
-      exit 1
-      ;;
-  esac
-done
-
 export PROJECT_DIR=$(pwd)
 echo "PROJECT_DIR = $PROJECT_DIR"
 export BUILD_DIR=$(pwd)/build
@@ -30,24 +14,15 @@ echo "OUTPUT_DIR = $OUTPUT_DIR"
 echo "create WebRTC.xcframework"
 rm -rf $OUTPUT_DIR/WebRTC.xcframework
 
-# Build the xcframework command based on include-dsym flag
-XCFRAMEWORK_CMD="xcodebuild -create-xcframework"
-
-if [ "$INCLUDE_DSYM" = true ]; then
-    XCFRAMEWORK_CMD+=" -framework $OUTPUT_DIR/mac/WebRTC.framework \
-        -debug-symbols $OUTPUT_DIR/mac/WebRTC.dSYM \
-        -framework $OUTPUT_DIR/ios/WebRTC.framework \
-        -debug-symbols $OUTPUT_DIR/ios/WebRTC.dSYM \
-        -framework $OUTPUT_DIR/ios/simulator/WebRTC.framework \
-        -debug-symbols $OUTPUT_DIR/ios/simulator/WebRTC.dSYM"
-else
-    XCFRAMEWORK_CMD+=" -framework $OUTPUT_DIR/mac/WebRTC.framework \
-        -framework $OUTPUT_DIR/ios/WebRTC.framework \
-        -framework $OUTPUT_DIR/ios/simulator/WebRTC.framework"
-fi
-
-XCFRAMEWORK_CMD+=" -output $OUTPUT_DIR/WebRTC.xcframework"
-eval "$XCFRAMEWORK_CMD"
+ABSOLUTE_OUTPUT_DIR=$(cd "$OUTPUT_DIR" && pwd)
+xcodebuild -create-xcframework \
+    -framework $ABSOLUTE_OUTPUT_DIR/mac/WebRTC.framework \
+    -debug-symbols $ABSOLUTE_OUTPUT_DIR/mac/WebRTC.dSYM \
+    -framework $ABSOLUTE_OUTPUT_DIR/ios/WebRTC.framework \
+    -debug-symbols $ABSOLUTE_OUTPUT_DIR/ios/WebRTC.dSYM \
+    -framework $ABSOLUTE_OUTPUT_DIR/ios/simulator/WebRTC.framework \
+    -debug-symbols $ABSOLUTE_OUTPUT_DIR/ios/simulator/WebRTC.dSYM \
+    -output $ABSOLUTE_OUTPUT_DIR/WebRTC.xcframework
 
 # Create tar file with the internal include files from webrtc, compressed
 rm -rf $OUTPUT_DIR/WebRTC-includes.tar.gz
