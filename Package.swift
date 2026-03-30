@@ -23,13 +23,13 @@ let package = Package(
         ),
         .binaryTarget(
             name: "Mediasoup",
-            url: "https://github.com/riversidefm/mediasoup-apple/releases/download/1.0.25/Mediasoup.xcframework.zip",
-            checksum: "c5fb9fe5874d4b414e85e9e28c012861c58387dbf0f68f99f974296d3e58d327"
+            url: "https://github.com/riversidefm/mediasoup-apple/releases/download/1.0.27/Mediasoup.xcframework.zip",
+            checksum: "40608a94a624ef1c69c3ea5c868ec5b940862d9bd74a04c4058a84894ac93c50"
         ),
         .binaryTarget(
             name: "WebRTC",
-            url: "https://github.com/riversidefm/mediasoup-apple/releases/download/1.0.25/WebRTC.xcframework.zip",
-            checksum: "ee51c67679d672b1e9c4bd5b7ca374e2a840aa506544d09e2823371dadfc37df"
+            url: "https://github.com/riversidefm/mediasoup-apple/releases/download/1.0.27/WebRTC.xcframework.zip",
+            checksum: "a720106ba32b4b0562456c444e2f94ce6d07622f1cd070bb3d4b38d27e8e89d5"
         )
     ]
 )
