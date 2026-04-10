@@ -153,6 +153,7 @@ jobs:
         id: package
         run: |
           cd bin
+          # Frameworks consumed by iOS/macOS apps via SPM
           zip -r -y Mediasoup.xcframework.zip Mediasoup.xcframework
           zip -r -y WebRTC.xcframework.zip WebRTC.xcframework
 
@@ -164,6 +165,12 @@ jobs:
 
           echo "Mediasoup checksum: $MEDIASOUP_CHECKSUM"
           echo "WebRTC checksum: $WEBRTC_CHECKSUM"
+
+          # Static libraries and headers for building HybridRecording.xcframework
+          # (not consumed via SPM — downloaded manually by build_from_ci.sh)
+          zip -r -y mediasoupclient.xcframework.zip mediasoupclient.xcframework
+          zip -r -y sdptransform.xcframework.zip sdptransform.xcframework
+          # WebRTC-includes.tar.gz is already created by build_all.sh
 
       - name: Update Package.swift
         if: steps.release-trigger.outputs.skip != 'true'
@@ -235,5 +242,8 @@ jobs:
           gh release create "${TAG}" \
             bin/Mediasoup.xcframework.zip \
             bin/WebRTC.xcframework.zip \
+            bin/mediasoupclient.xcframework.zip \
+            bin/sdptransform.xcframework.zip \
+            bin/WebRTC-includes.tar.gz \
             --title "Release ${TAG}" \
             --generate-notes

@@ -1,37 +1,69 @@
-For iOS branch - master 
+# mediasoup-apple
 
-For macOS branch - macos
+Riverside's fork of mediasoup for Apple platforms (iOS and macOS). Provides WebRTC-based media transport via the `MediasoupSwift` SPM package.
 
-## If you want to change only Mediasoup, take the next steps:
+## How Releases Work
+
+A new release is created **automatically** when a pull request is merged to `main`. The CI workflow (`.github/workflows/autotag.yml`) handles everything:
+
+1. **Version bump** is determined by PR labels: `major`, `minor`, or `patch` (default).
+2. **`build_all.sh`** runs on CI, which builds WebRTC and mediasoup from source for all platforms (iOS device, iOS simulator, macOS).
+3. **Artifacts are packaged** and uploaded to a GitHub Release.
+4. **`Package.swift` is updated** with the new release URLs and checksums, committed, tagged, and pushed.
+
+### Release Artifacts
+
+Each release contains two categories of artifacts:
+
+#### For iOS/macOS app consumers (via SPM)
+
+| Artifact | Description |
+|---|---|
+| `Mediasoup.xcframework.zip` | The mediasoup dynamic framework (Swift API) |
+| `WebRTC.xcframework.zip` | Google's WebRTC framework |
+
+These are referenced as `binaryTarget`s in `Package.swift`. When an app depends on `MediasoupSwift` via SPM, only these two files are downloaded.
+
+#### For HybridRecording builds (manual download)
+
+| Artifact | Description |
+|---|---|
+| `mediasoupclient.xcframework.zip` | Static library (`libmediasoupclient.a` per platform) — the C++ mediasoup client |
+| `sdptransform.xcframework.zip` | Static library (`libsdptransform.a` per platform) — SDP parsing |
+| `WebRTC-includes.tar.gz` | WebRTC C++ source headers (for compilation, not shipped to apps) |
+
+These are **not** consumed via SPM. They exist on the release for `Riverside-Mobile-Shared`'s `build_from_ci.sh` to download when rebuilding `HybridRecording.xcframework`, which is a separate C++ library that links against mediasoupclient and sdptransform at compile time.
+
+## Development
+
+### Prerequisites
+
+- Python 3.9+
+- [Ninja](https://ninja-build.org/) build system
+- Xcode 16+
+
+### Building from Source
+
+```bash
+# Build everything (iOS + macOS)
+./build_all.sh
+
+# Or build a single platform
+./build_ios.sh --no-interactive
+./build_macos.sh --no-interactive
+```
+
+### Exposing Additional WebRTC Classes
+
+If you need to expose extra WebRTC classes to Swift:
+
+1. Edit `patches/sdk_BUILD.patch` and add the class to the deps.
+2. Re-run the build script.
+
+### Making Local Changes to Mediasoup
+
 1. Clone the repo.
-2. Make changes for example in Consumer.swift
-3. Select the Mediasoup.xcodeproj in Xcode
-4. Check the target it must be Mediasoup Framework
-5. Run the Framework (cmd+b)
-
-* After the script will finish the task. We can find the updated framework in the bin folder - Mediasoup.xcframework.
-
-6. Push updates
-
-* Next steps you can find here https://github.com/riversidefm/livecalls-client-ios-sdk
-
-## If you want to change WebRTC, take the next steps:
-
-All dependencies (WebRTC, libmediasoupclient, libsdptransform) are prebuilt and added to the repo as binary .xcframework's to reduce application build time. Fetching and building them from scratch takes couple of hours. If your security policy doesn't allow to import binary dependencies, or you just wand to go deeper, you can build everything on your machine.
-
-Dependencies are resolved with one command: .\build.sh. WebRTC sources are fetched from official repo and than patched locally to make it usable on iOS platform and also to expose some missing things. If you want to switch to another WebRTC version, configure WebRTC build flags, or make other customizations, dive into build.sh. We use XCFrameworks to cover both devices and simulators, including simulators on Apple Silicon macs, which is not possible with older .framework format.
-
-### IMPORTANT:
-* Need to install python on the Mac
-* Need to install ninja on the Mac.
-
-1. Clone the repo
-2. Run sh script. For iOS - build_ios.sh. For macOS - build_macos.sh
-
-If you want to make available extra WebRTC Classes, make next:
-* In the project go to  patches/sdk_BUILD.patch
-* Add class to the deps
-3. Re-run sh script
-
-
-P.S. In the ```SH``` script all functions are described with a comments
+2. Open `Mediasoup.xcodeproj` in Xcode, select the **Mediasoup Framework** target.
+3. Make your changes (e.g., in `Consumer.swift`).
+4. Build the framework (`Cmd+B`). The updated `Mediasoup.xcframework` will appear in `bin/`.
+5. Push your changes and open a PR. Merging triggers a new release.
