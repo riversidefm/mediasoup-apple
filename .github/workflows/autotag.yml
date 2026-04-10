@@ -170,7 +170,8 @@ jobs:
           # (not consumed via SPM — downloaded manually by build_from_ci.sh)
           zip -r -y mediasoupclient.xcframework.zip mediasoupclient.xcframework
           zip -r -y sdptransform.xcframework.zip sdptransform.xcframework
-          # WebRTC-includes.tar.gz is already created by build_all.sh
+          # WebRTC-includes.tar.gz, mediasoupclient-headers.tar.gz, and
+          # sdptransform-headers.tar.gz are already created by build_all.sh
 
       - name: Update Package.swift
         if: steps.release-trigger.outputs.skip != 'true'
@@ -245,5 +246,7 @@ jobs:
             bin/mediasoupclient.xcframework.zip \
             bin/sdptransform.xcframework.zip \
             bin/WebRTC-includes.tar.gz \
+            bin/mediasoupclient-headers.tar.gz \
+            bin/sdptransform-headers.tar.gz \
             --title "Release ${TAG}" \
             --generate-notes

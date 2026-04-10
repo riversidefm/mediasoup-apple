@@ -28,6 +28,14 @@ xcodebuild -create-xcframework \
 rm -rf "$OUTPUT_DIR/WebRTC-includes.tar.gz"
 find Mediasoup/dependencies/webrtc/src -name "*.h" -o -name "*.hpp" | tar -zcf "$OUTPUT_DIR/WebRTC-includes.tar.gz" -T -
 
+echo "create mediasoupclient-headers.tar.gz"
+rm -rf "$OUTPUT_DIR/mediasoupclient-headers.tar.gz"
+find Mediasoup/dependencies/libmediasoupclient/include -name "*.h" -o -name "*.hpp" | tar -zcf "$OUTPUT_DIR/mediasoupclient-headers.tar.gz" -T -
+
+echo "create sdptransform-headers.tar.gz"
+rm -rf "$OUTPUT_DIR/sdptransform-headers.tar.gz"
+find Mediasoup/dependencies/libmediasoupclient/deps/libsdptransform/include -name "*.h" -o -name "*.hpp" | tar -zcf "$OUTPUT_DIR/sdptransform-headers.tar.gz" -T -
+
 echo "create mediasoupclient.xcframework"
 rm -rf "$OUTPUT_DIR/mediasoupclient.xcframework"
 xcodebuild -create-xcframework \
