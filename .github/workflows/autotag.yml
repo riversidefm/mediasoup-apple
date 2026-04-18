@@ -1,7 +1,8 @@
 name: Release on PR Merge
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
       - master
@@ -26,6 +27,7 @@ jobs:
   release:
     name: Build, Package & Release
     runs-on: macos-15
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     permissions:
       contents: write
       pull-requests: read
@@ -41,11 +43,11 @@ jobs:
       - name: Decide release trigger
         id: release-trigger
         env:
-          GH_TOKEN: ${{ steps.harbor-token.outputs.token }}
           EVENT_NAME: ${{ github.event_name }}
           FORCE_RELEASE: ${{ inputs.force_release }}
           REQUESTED_BUMP: ${{ inputs.bump }}
-          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
         run: |
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             if [[ "$FORCE_RELEASE" != "true" ]]; then
@@ -61,29 +63,21 @@ jobs:
             exit 0
           fi
 
-          PR_NUMBER=$(gh api "repos/${REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '.[0].number // empty')
-          if [ -z "$PR_NUMBER" ]; then
-            echo "No merged PR found for ${GITHUB_SHA}, skipping release"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          LABELS=$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json labels --jq '[.labels[].name] | join(" ")')
-          echo "labels=$LABELS" >> "$GITHUB_OUTPUT"
-          if [[ "$LABELS" == *"major"* ]]; then
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          if [[ "$PR_LABELS" == *"major"* ]]; then
             echo "bump=major" >> "$GITHUB_OUTPUT"
-          elif [[ "$LABELS" == *"minor"* ]]; then
+          elif [[ "$PR_LABELS" == *"minor"* ]]; then
             echo "bump=minor" >> "$GITHUB_OUTPUT"
           else
             echo "bump=patch" >> "$GITHUB_OUTPUT"
           fi
-          echo "PR #$PR_NUMBER labels: ${LABELS:-<none>}"
+          echo "PR #$PR_NUMBER labels: ${PR_LABELS:-<none>}"
 
       - name: Checkout repository
         if: steps.release-trigger.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.base.ref || github.ref_name }}
           fetch-depth: 0
           fetch-tags: true
           token: ${{ steps.harbor-token.outputs.token }}
