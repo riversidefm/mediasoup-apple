@@ -167,6 +167,28 @@ jobs:
           # WebRTC-includes.tar.gz, mediasoupclient-headers.tar.gz, and
           # sdptransform-headers.tar.gz are already created by build_all.sh
 
+      - name: Create draft release with assets
+        if: steps.release-trigger.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ steps.harbor-token.outputs.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Draft releases don't create the tag yet — we push the tag from the
+          # local commit below and publish (un-draft) at the end. This keeps
+          # main's Package.swift, the tag, and the release contents in lockstep.
+          gh release create "${TAG}" \
+            bin/Mediasoup.xcframework.zip \
+            bin/WebRTC.xcframework.zip \
+            bin/mediasoupclient.xcframework.zip \
+            bin/sdptransform.xcframework.zip \
+            bin/WebRTC-includes.tar.gz \
+            bin/mediasoupclient-headers.tar.gz \
+            bin/sdptransform-headers.tar.gz \
+            --title "Release ${TAG}" \
+            --generate-notes \
+            --draft
+
       - name: Update Package.swift
         if: steps.release-trigger.outputs.skip != 'true'
         env:
@@ -228,19 +250,11 @@ jobs:
           git tag -a "${TAG}" -m "Release ${TAG}"
           git push origin HEAD "${TAG}"
 
-      - name: Create GitHub Release
+      - name: Publish release
         if: steps.release-trigger.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ steps.harbor-token.outputs.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          gh release create "${TAG}" \
-            bin/Mediasoup.xcframework.zip \
-            bin/WebRTC.xcframework.zip \
-            bin/mediasoupclient.xcframework.zip \
-            bin/sdptransform.xcframework.zip \
-            bin/WebRTC-includes.tar.gz \
-            bin/mediasoupclient-headers.tar.gz \
-            bin/sdptransform-headers.tar.gz \
-            --title "Release ${TAG}" \
-            --generate-notes
+          set -euo pipefail
+          gh release edit "${TAG}" --draft=false
