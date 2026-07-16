@@ -28,11 +28,13 @@ xcodebuild -project "${PROJECT_NAME}.xcodeproj" \
     -sdk "iphonesimulator" \
     -derivedDataPath "${BUILD_DIR}"
 
-# Build for arm64 and x86_64
+# Build the macOS framework for arm64 only.
 xcodebuild -project "${PROJECT_NAME}.xcodeproj" \
         -scheme "${FRAMEWORK_NAME}" \
         -configuration Release \
         -destination 'generic/platform=macOS' \
+        -arch arm64 \
+        ONLY_ACTIVE_ARCH=YES \
         -derivedDataPath "${BUILD_DIR}"
 
 # Prepare output directory

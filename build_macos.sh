@@ -314,34 +314,8 @@ gn_arguments=(
     'treat_warnings_as_errors=false'
 )
 
-gn_arguments_x64=(
-    'target_os="mac"'
-    'is_component_build=false'
-    #'is_debug=true'
-    'is_debug=false'
-    'rtc_libvpx_build_vp9=true'
-    'use_goma=false'
-    'rtc_enable_symbol_export=true'
-    'rtc_enable_objc_symbol_export=true'
-    'rtc_enable_protobuf=false'
-    'rtc_include_tests=false'
-    'rtc_include_builtin_audio_codecs=true'
-    'rtc_include_builtin_video_codecs=true'
-    'rtc_include_pulse_audio=false'
-    'use_rtti=true'
-    'use_custom_libcxx=false'
-    'use_xcode_clang=true'
-    'enable_dsyms=true'
-    'enable_stripping=true'
-    'treat_warnings_as_errors=false'
-)
-
 for str in ${gn_arguments[@]}; do
     gn_args+=" ${str}"
-done
-
-for str in ${gn_arguments_x64[@]}; do
-    gn_args_x64+=" ${str}"
 done
 
 echo 'Applying arm64 params'
@@ -349,15 +323,9 @@ echo "gn gen $BUILD_DIR/WebRTC/mac/arm64 --ide=xcode --args=\"${platform_args_ar
 platform_args_arm64='target_environment="device" target_cpu="arm64"'
 gn gen $BUILD_DIR/WebRTC/mac/arm64 --ide=xcode --args="${platform_args_arm64} ${gn_args}"
 
-echo 'Applying x64 params'
-echo "gn gen $BUILD_DIR/WebRTC/mac/x64 --ide=xcode --args=\"${platform_args_x64} ${gn_args_x64}\""
-platform_args_x64='target_environment="device" target_cpu="x64"'
-gn gen $BUILD_DIR/WebRTC/mac/x64 --ide=xcode --args="${platform_args_x64} ${gn_args_x64}"
-
 
 cd $BUILD_DIR/WebRTC
 echo 'Ninja build'
-ninja -C mac/x64 mac_framework_objc
 ninja -C mac/arm64 mac_framework_objc
 
 rm -rf mac/WebRTC.framework
@@ -365,19 +333,6 @@ rm -rf mac/WebRTC.framework.dSYM
 cp -R mac/arm64/WebRTC.framework mac/WebRTC.framework
 cp -R mac/arm64/WebRTC.dSYM mac/WebRTC.dSYM
 #rm mac/WebRTC.framework/WebRTC/Versions/A/WebRTC
-
-echo 'Start lipo'
-lipo -create \
-    mac/arm64/WebRTC.framework/WebRTC \
-    mac/x64/WebRTC.framework/WebRTC \
-    -output mac/WebRTC.framework/Versions/A/WebRTC
-
-lipo -create \
-    mac/arm64/WebRTC.dSYM/Contents/Resources/DWARF/WebRTC \
-    mac/x64/WebRTC.dSYM/Contents/Resources/DWARF/WebRTC \
-    -output mac/WebRTC.dSYM/Contents/Resources/DWARF/WebRTC
-
-echo 'Finish lipo'
 
 echo 'Create xcframework'
 cd $BUILD_DIR/WebRTC
@@ -417,7 +372,7 @@ function rebuildLMSC() {
         lmsc_cmake_args+=" ${str}"
     done
     
-    # Build mediasoup-client-ios for arm64
+    # Build mediasoup-client-ios for arm64 only.
     echo "cmake lmsc arm64"
     cmake . -B $BUILD_DIR/libmediasoupclient/mac/arm64 \
         ${lmsc_cmake_args} \
@@ -426,42 +381,18 @@ function rebuildLMSC() {
         -DLIBWEBRTC_BINARY_PATH=$BUILD_DIR/WebRTC/mac/arm64/WebRTC.framework/WebRTC
     make -C $BUILD_DIR/libmediasoupclient/mac/arm64
 
-    # Build mediasoup-client-ios for x86_64
-    echo "cmake lmsc x64"
-    cmake . -B $BUILD_DIR/libmediasoupclient/mac/x64 \
-        ${lmsc_cmake_args} \
-        -DCMAKE_OSX_ARCHITECTURES=x86_64 \
-        -DCMAKE_OSX_SYSROOT="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" \
-        -DLIBWEBRTC_BINARY_PATH=$BUILD_DIR/WebRTC/mac/x64/WebRTC.framework/WebRTC
-    make -C $BUILD_DIR/libmediasoupclient/mac/x64
-
-    # Create a FAT libmediasoup / libsdptransform library
-    mkdir -p $BUILD_DIR/libmediasoupclient/mac/fat
-    echo "lipo libmediasoupclient"
-    lipo -create \
-        $BUILD_DIR/libmediasoupclient/mac/arm64/libmediasoupclient/libmediasoupclient.a \
-        $BUILD_DIR/libmediasoupclient/mac/x64/libmediasoupclient/libmediasoupclient.a \
-        -output $BUILD_DIR/libmediasoupclient/mac/fat/libmediasoupclient.a
-  
-    echo "lipo libsdptransform"
-    lipo -create \
-        $BUILD_DIR/libmediasoupclient/mac/arm64/libmediasoupclient/libsdptransform/libsdptransform.a \
-        $BUILD_DIR/libmediasoupclient/mac/x64/libmediasoupclient/libsdptransform/libsdptransform.a \
-        -output $BUILD_DIR/libmediasoupclient/mac/fat/libsdptransform.a
-
-
     if [ "$NO_INTERACTIVE" = false ]; then
         echo "create mediasoupclient.xcframework"
         xcodebuild -create-xcframework \
-            -library $BUILD_DIR/libmediasoupclient/mac/fat/libmediasoupclient.a \
+            -library $BUILD_DIR/libmediasoupclient/mac/arm64/libmediasoupclient/libmediasoupclient.a \
             -output $OUTPUT_DIR/mediasoupclient.xcframework
         echo " create sdptransform.xcframework"
         xcodebuild -create-xcframework \
-            -library $BUILD_DIR/libmediasoupclient/mac/fat/libsdptransform.a \
+            -library $BUILD_DIR/libmediasoupclient/mac/arm64/libmediasoupclient/libsdptransform/libsdptransform.a \
             -output $OUTPUT_DIR/sdptransform.xcframework
     else
-        mv $BUILD_DIR/libmediasoupclient/mac/fat/libmediasoupclient.a $OUTPUT_DIR/libmediasoupclient.a
-        mv $BUILD_DIR/libmediasoupclient/mac/fat/libsdptransform.a $OUTPUT_DIR/libsdptransform.a
+        mv $BUILD_DIR/libmediasoupclient/mac/arm64/libmediasoupclient/libmediasoupclient.a $OUTPUT_DIR/libmediasoupclient.a
+        mv $BUILD_DIR/libmediasoupclient/mac/arm64/libmediasoupclient/libsdptransform/libsdptransform.a $OUTPUT_DIR/libsdptransform.a
     fi
     echo "finish"
 }
