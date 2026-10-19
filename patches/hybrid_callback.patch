@@ -283,7 +283,7 @@ index 0b2211b..51968ae 100644
  
  	/**
 diff --git a/src/Transport.cpp b/src/Transport.cpp
-index 69fbf59..6883664 100644
+index 69fbf59..940fe18 100644
 --- a/src/Transport.cpp
 +++ b/src/Transport.cpp
 @@ -258,6 +258,9 @@ namespace mediasoupclient
@@ -296,17 +296,33 @@ index 69fbf59..6883664 100644
  		return producer;
  	}
  
-@@ -324,6 +327,9 @@ namespace mediasoupclient
- 		{
- 			auto* producer = kv.second;
+@@ -319,10 +322,23 @@ namespace mediasoupclient
  
+ 		Transport::Close();
+ 
+-		// Close all Producers.
++		// Close all Producers. The callback may close a Producer, which erases it from the map.
++		std::vector<std::string> producerIds;
++
+ 		for (auto& kv : this->producers)
++			producerIds.push_back(kv.first);
++
++		for (const auto& producerId : producerIds)
+ 		{
+-			auto* producer = kv.second;
++			auto it = this->producers.find(producerId);
++
++			if (it == this->producers.end())
++				continue;
++
++			auto* producer = it->second;
++
 +			if (this->producerLifecycleCallback)
 +				this->producerLifecycleCallback(MediaLifecycleEvent::Removed, producer);
-+
+ 
  			producer->TransportClosed();
  		}
- 
-@@ -340,6 +346,9 @@ namespace mediasoupclient
+@@ -340,6 +356,9 @@ namespace mediasoupclient
  	{
  		MSC_TRACE();
  
@@ -316,7 +332,7 @@ index 69fbf59..6883664 100644
  		this->producers.erase(producer->GetId());
  
  		if (this->closed)
-@@ -349,6 +358,43 @@ namespace mediasoupclient
+@@ -349,6 +368,46 @@ namespace mediasoupclient
  		this->sendHandler->StopSending(producer->GetLocalId());
  	}
  
@@ -349,6 +365,9 @@ index 69fbf59..6883664 100644
 +
 +			for (const auto& producerId : producerIds)
 +			{
++				if (this->closed)
++					break;
++
 +				auto it = this->producers.find(producerId);
 +
 +				if (it != this->producers.end())
@@ -360,7 +379,7 @@ index 69fbf59..6883664 100644
  	void SendTransport::OnClose(DataProducer* dataProducer)
  	{
  		MSC_TRACE();
-@@ -457,6 +503,9 @@ namespace mediasoupclient
+@@ -457,6 +516,9 @@ namespace mediasoupclient
  
  		this->consumers[consumer->GetId()] = consumer;
  
@@ -370,17 +389,33 @@ index 69fbf59..6883664 100644
  		// If this is the first video Consumer and the Consumer for RTP probation
  		// has not yet been created, create it now.
  		if (!this->probatorConsumerCreated && kind == "video")
-@@ -535,6 +584,9 @@ namespace mediasoupclient
- 		{
- 			auto* consumer = kv.second;
+@@ -530,10 +592,23 @@ namespace mediasoupclient
  
+ 		Transport::Close();
+ 
+-		// Close all Consumers.
++		// Close all Consumers. The callback may close a Consumer, which erases it from the map.
++		std::vector<std::string> consumerIds;
++
+ 		for (auto& kv : this->consumers)
++			consumerIds.push_back(kv.first);
++
++		for (const auto& consumerId : consumerIds)
+ 		{
+-			auto* consumer = kv.second;
++			auto it = this->consumers.find(consumerId);
++
++			if (it == this->consumers.end())
++				continue;
++
++			auto* consumer = it->second;
++
 +			if (this->consumerLifecycleCallback)
 +				this->consumerLifecycleCallback(MediaLifecycleEvent::Removed, consumer);
-+
+ 
  			consumer->TransportClosed();
  		}
- 
-@@ -551,6 +603,9 @@ namespace mediasoupclient
+@@ -551,6 +626,9 @@ namespace mediasoupclient
  	{
  		MSC_TRACE();
  
@@ -390,7 +425,7 @@ index 69fbf59..6883664 100644
  		this->consumers.erase(consumer->GetId());
  
  		if (this->closed)
-@@ -560,6 +615,43 @@ namespace mediasoupclient
+@@ -560,6 +638,46 @@ namespace mediasoupclient
  		this->recvHandler->StopReceiving(consumer->GetLocalId());
  	}
  
@@ -423,6 +458,9 @@ index 69fbf59..6883664 100644
 +
 +			for (const auto& consumerId : consumerIds)
 +			{
++				if (this->closed)
++					break;
++
 +				auto it = this->consumers.find(consumerId);
 +
 +				if (it != this->consumers.end())
