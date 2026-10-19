@@ -160,3 +160,233 @@ index cc1cbef..69fbf59 100644
  	/* RecvTransport */
  
  	RecvTransport::RecvTransport(
+diff --git a/include/Consumer.hpp b/include/Consumer.hpp
+index d41c02f..06bcca6 100644
+--- a/include/Consumer.hpp
++++ b/include/Consumer.hpp
+@@ -20,6 +20,8 @@ namespace mediasoupclient
+ 		public:
+ 			virtual void OnClose(Consumer* consumer)                    = 0;
+ 			virtual nlohmann::json OnGetStats(const Consumer* consumer) = 0;
++			virtual void OnPause(const Consumer* /*consumer*/) {}
++			virtual void OnResume(const Consumer* /*consumer*/) {}
+ 		};
+ 
+ 		/* Public Listener API */
+diff --git a/include/Producer.hpp b/include/Producer.hpp
+index d8be084..d26a081 100644
+--- a/include/Producer.hpp
++++ b/include/Producer.hpp
+@@ -23,6 +23,8 @@ namespace mediasoupclient
+ 			  const Producer* producer, webrtc::MediaStreamTrackInterface* newTrack)             = 0;
+ 			virtual void OnSetMaxSpatialLayer(const Producer* producer, uint8_t maxSpatialLayer) = 0;
+ 			virtual nlohmann::json OnGetStats(const Producer* producer)                          = 0;
++			virtual void OnPause(const Producer* /*producer*/) {}
++			virtual void OnResume(const Producer* /*producer*/) {}
+ 		};
+ 
+ 		/* Public Listener API */
+diff --git a/include/Transport.hpp b/include/Transport.hpp
+index f01cbe5..b3c4eff 100644
+--- a/include/Transport.hpp
++++ b/include/Transport.hpp
+@@ -90,6 +90,14 @@ namespace mediasoupclient
+ 		nlohmann::json appData = nlohmann::json::object();
+ 	};
+ 
++	enum class MediaLifecycleEvent
++	{
++		Added,
++		Removed,
++		Paused,
++		Resumed
++	};
++
+ 	class SendTransport : public Transport,
+ 	                      public Producer::PrivateListener,
+ 	                      public DataProducer::PrivateListener
+@@ -115,6 +123,7 @@ namespace mediasoupclient
+         
+ 	public:
+ 		void setTransceiverCallback(std::function<void(rtc::scoped_refptr<webrtc::RtpTransceiverInterface>)> callback);
++		void setProducerLifecycleCallback(std::function<void(MediaLifecycleEvent, const Producer*)> callback);
+ 
+ 	private:
+ 		SendTransport(
+@@ -161,8 +170,11 @@ namespace mediasoupclient
+ 		void OnReplaceTrack(const Producer* producer, webrtc::MediaStreamTrackInterface* track) override;
+ 		void OnSetMaxSpatialLayer(const Producer* producer, uint8_t maxSpatialLayer) override;
+ 		nlohmann::json OnGetStats(const Producer* producer) override;
++		void OnPause(const Producer* producer) override;
++		void OnResume(const Producer* producer) override;
+ 
+ 	private:
++		std::function<void(MediaLifecycleEvent, const Producer*)> producerLifecycleCallback;
+ 		// Listener instance.
+ 		Listener* listener;
+ 		// Map of Producers indexed by id.
+@@ -227,8 +239,12 @@ namespace mediasoupclient
+ 		void OnClose(Consumer* consumer) override;
+ 		void OnClose(DataConsumer* consumer) override;
+ 		nlohmann::json OnGetStats(const Consumer* consumer) override;
++		void OnPause(const Consumer* consumer) override;
++		void OnResume(const Consumer* consumer) override;
++		void setConsumerLifecycleCallback(std::function<void(MediaLifecycleEvent, const Consumer*)> callback);
+ 
+ 	private:
++		std::function<void(MediaLifecycleEvent, const Consumer*)> consumerLifecycleCallback;
+ 		// Map of Consumers indexed by id.
+ 		std::unordered_map<std::string, Consumer*> consumers;
+ 		std::unordered_map<std::string, DataConsumer*> dataConsumers;
+diff --git a/src/Consumer.cpp b/src/Consumer.cpp
+index b0217d9..3709de3 100644
+--- a/src/Consumer.cpp
++++ b/src/Consumer.cpp
+@@ -133,6 +133,8 @@ namespace mediasoupclient
+ 		}
+ 
+ 		this->track->set_enabled(false);
++
++		this->privateListener->OnPause(this);
+ 	}
+ 
+ 	/**
+@@ -150,6 +152,8 @@ namespace mediasoupclient
+ 		}
+ 
+ 		this->track->set_enabled(true);
++
++		this->privateListener->OnResume(this);
+ 	}
+ 
+ 	/**
+diff --git a/src/Producer.cpp b/src/Producer.cpp
+index 0b2211b..51968ae 100644
+--- a/src/Producer.cpp
++++ b/src/Producer.cpp
+@@ -131,6 +131,8 @@ namespace mediasoupclient
+ 		}
+ 
+ 		this->track->set_enabled(false);
++
++		this->privateListener->OnPause(this);
+ 	}
+ 
+ 	/**
+@@ -148,6 +150,8 @@ namespace mediasoupclient
+ 		}
+ 
+ 		this->track->set_enabled(true);
++
++		this->privateListener->OnResume(this);
+ 	}
+ 
+ 	/**
+diff --git a/src/Transport.cpp b/src/Transport.cpp
+index 69fbf59..860cde9 100644
+--- a/src/Transport.cpp
++++ b/src/Transport.cpp
+@@ -258,6 +258,9 @@ namespace mediasoupclient
+ 
+ 		this->producers[producer->GetId()] = producer;
+ 
++		if (this->producerLifecycleCallback)
++			this->producerLifecycleCallback(MediaLifecycleEvent::Added, producer);
++
+ 		return producer;
+ 	}
+ 
+@@ -340,6 +343,9 @@ namespace mediasoupclient
+ 	{
+ 		MSC_TRACE();
+ 
++		if (this->producerLifecycleCallback)
++			this->producerLifecycleCallback(MediaLifecycleEvent::Removed, producer);
++
+ 		this->producers.erase(producer->GetId());
+ 
+ 		if (this->closed)
+@@ -349,6 +355,31 @@ namespace mediasoupclient
+ 		this->sendHandler->StopSending(producer->GetLocalId());
+ 	}
+ 
++	void SendTransport::OnPause(const Producer* producer)
++	{
++		if (this->producerLifecycleCallback)
++			this->producerLifecycleCallback(MediaLifecycleEvent::Paused, producer);
++	}
++
++	void SendTransport::OnResume(const Producer* producer)
++	{
++		if (this->producerLifecycleCallback)
++			this->producerLifecycleCallback(MediaLifecycleEvent::Resumed, producer);
++	}
++
++	void SendTransport::setProducerLifecycleCallback(std::function<void(MediaLifecycleEvent, const Producer*)> callback)
++	{
++		// Report the Producers created before the first callback was set.
++		const bool replay               = !this->producerLifecycleCallback;
++		this->producerLifecycleCallback = std::move(callback);
++
++		if (replay && this->producerLifecycleCallback)
++		{
++			for (auto& kv : this->producers)
++				this->producerLifecycleCallback(MediaLifecycleEvent::Added, kv.second);
++		}
++	}
++
+ 	void SendTransport::OnClose(DataProducer* dataProducer)
+ 	{
+ 		MSC_TRACE();
+@@ -457,6 +488,9 @@ namespace mediasoupclient
+ 
+ 		this->consumers[consumer->GetId()] = consumer;
+ 
++		if (this->consumerLifecycleCallback)
++			this->consumerLifecycleCallback(MediaLifecycleEvent::Added, consumer);
++
+ 		// If this is the first video Consumer and the Consumer for RTP probation
+ 		// has not yet been created, create it now.
+ 		if (!this->probatorConsumerCreated && kind == "video")
+@@ -551,6 +585,9 @@ namespace mediasoupclient
+ 	{
+ 		MSC_TRACE();
+ 
++		if (this->consumerLifecycleCallback)
++			this->consumerLifecycleCallback(MediaLifecycleEvent::Removed, consumer);
++
+ 		this->consumers.erase(consumer->GetId());
+ 
+ 		if (this->closed)
+@@ -560,6 +597,31 @@ namespace mediasoupclient
+ 		this->recvHandler->StopReceiving(consumer->GetLocalId());
+ 	}
+ 
++	void RecvTransport::OnPause(const Consumer* consumer)
++	{
++		if (this->consumerLifecycleCallback)
++			this->consumerLifecycleCallback(MediaLifecycleEvent::Paused, consumer);
++	}
++
++	void RecvTransport::OnResume(const Consumer* consumer)
++	{
++		if (this->consumerLifecycleCallback)
++			this->consumerLifecycleCallback(MediaLifecycleEvent::Resumed, consumer);
++	}
++
++	void RecvTransport::setConsumerLifecycleCallback(std::function<void(MediaLifecycleEvent, const Consumer*)> callback)
++	{
++		// Report the Consumers created before the first callback was set.
++		const bool replay               = !this->consumerLifecycleCallback;
++		this->consumerLifecycleCallback = std::move(callback);
++
++		if (replay && this->consumerLifecycleCallback)
++		{
++			for (auto& kv : this->consumers)
++				this->consumerLifecycleCallback(MediaLifecycleEvent::Added, kv.second);
++		}
++	}
++
+ 	void RecvTransport::OnClose(DataConsumer* dataConsumer)
+ 	{
+ 		MSC_TRACE();
