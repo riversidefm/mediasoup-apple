@@ -283,7 +283,7 @@ index 0b2211b..51968ae 100644
  
  	/**
 diff --git a/src/Transport.cpp b/src/Transport.cpp
-index 69fbf59..860cde9 100644
+index 69fbf59..6883664 100644
 --- a/src/Transport.cpp
 +++ b/src/Transport.cpp
 @@ -258,6 +258,9 @@ namespace mediasoupclient
@@ -296,7 +296,17 @@ index 69fbf59..860cde9 100644
  		return producer;
  	}
  
-@@ -340,6 +343,9 @@ namespace mediasoupclient
+@@ -324,6 +327,9 @@ namespace mediasoupclient
+ 		{
+ 			auto* producer = kv.second;
+ 
++			if (this->producerLifecycleCallback)
++				this->producerLifecycleCallback(MediaLifecycleEvent::Removed, producer);
++
+ 			producer->TransportClosed();
+ 		}
+ 
+@@ -340,6 +346,9 @@ namespace mediasoupclient
  	{
  		MSC_TRACE();
  
@@ -306,7 +316,7 @@ index 69fbf59..860cde9 100644
  		this->producers.erase(producer->GetId());
  
  		if (this->closed)
-@@ -349,6 +355,31 @@ namespace mediasoupclient
+@@ -349,6 +358,43 @@ namespace mediasoupclient
  		this->sendHandler->StopSending(producer->GetLocalId());
  	}
  
@@ -330,15 +340,27 @@ index 69fbf59..860cde9 100644
 +
 +		if (replay && this->producerLifecycleCallback)
 +		{
++			// The callback may close Producers or reset itself: replay ids against a copy of it.
++			const auto replayCallback = this->producerLifecycleCallback;
++			std::vector<std::string> producerIds;
++
 +			for (auto& kv : this->producers)
-+				this->producerLifecycleCallback(MediaLifecycleEvent::Added, kv.second);
++				producerIds.push_back(kv.first);
++
++			for (const auto& producerId : producerIds)
++			{
++				auto it = this->producers.find(producerId);
++
++				if (it != this->producers.end())
++					replayCallback(MediaLifecycleEvent::Added, it->second);
++			}
 +		}
 +	}
 +
  	void SendTransport::OnClose(DataProducer* dataProducer)
  	{
  		MSC_TRACE();
-@@ -457,6 +488,9 @@ namespace mediasoupclient
+@@ -457,6 +503,9 @@ namespace mediasoupclient
  
  		this->consumers[consumer->GetId()] = consumer;
  
@@ -348,7 +370,17 @@ index 69fbf59..860cde9 100644
  		// If this is the first video Consumer and the Consumer for RTP probation
  		// has not yet been created, create it now.
  		if (!this->probatorConsumerCreated && kind == "video")
-@@ -551,6 +585,9 @@ namespace mediasoupclient
+@@ -535,6 +584,9 @@ namespace mediasoupclient
+ 		{
+ 			auto* consumer = kv.second;
+ 
++			if (this->consumerLifecycleCallback)
++				this->consumerLifecycleCallback(MediaLifecycleEvent::Removed, consumer);
++
+ 			consumer->TransportClosed();
+ 		}
+ 
+@@ -551,6 +603,9 @@ namespace mediasoupclient
  	{
  		MSC_TRACE();
  
@@ -358,7 +390,7 @@ index 69fbf59..860cde9 100644
  		this->consumers.erase(consumer->GetId());
  
  		if (this->closed)
-@@ -560,6 +597,31 @@ namespace mediasoupclient
+@@ -560,6 +615,43 @@ namespace mediasoupclient
  		this->recvHandler->StopReceiving(consumer->GetLocalId());
  	}
  
@@ -382,8 +414,20 @@ index 69fbf59..860cde9 100644
 +
 +		if (replay && this->consumerLifecycleCallback)
 +		{
++			// The callback may close Consumers or reset itself: replay ids against a copy of it.
++			const auto replayCallback = this->consumerLifecycleCallback;
++			std::vector<std::string> consumerIds;
++
 +			for (auto& kv : this->consumers)
-+				this->consumerLifecycleCallback(MediaLifecycleEvent::Added, kv.second);
++				consumerIds.push_back(kv.first);
++
++			for (const auto& consumerId : consumerIds)
++			{
++				auto it = this->consumers.find(consumerId);
++
++				if (it != this->consumers.end())
++					replayCallback(MediaLifecycleEvent::Added, it->second);
++			}
 +		}
 +	}
 +
