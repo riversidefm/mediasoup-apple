@@ -105,7 +105,15 @@
 }
 
 - (void)close {
-	_consumer->Close();
+	// Close renegotiates SDP and throws when the peer connection rejects it
+	NSError *error = nil;
+	mediasoupTry(^{
+		self->_consumer->Close();
+	}, &error);
+
+	if (error != nil) {
+		NSLog(@"[Mediasoup] Consumer %@ close failed: %@", self.id, error.localizedDescription);
+	}
 }
 
 - (NSString *_Nullable)getStatsWithError:(out NSError *__autoreleasing _Nullable *_Nullable)error {
