@@ -1,0 +1,13 @@
+diff --git a/src/ortc.cpp b/src/ortc.cpp
+index c44519b..ab48639 100644
+--- a/src/ortc.cpp
++++ b/src/ortc.cpp
+@@ -1578,7 +1578,7 @@ namespace mediasoupclient
+ 					{
+ 						filteredCodecs.push_back(codecs[idx]);
+ 
+-						if (isRtxCodec(codecs[idx + 1]))
++						if (idx + 1 < codecs.size() && isRtxCodec(codecs[idx + 1]))
+ 							filteredCodecs.push_back(codecs[idx + 1]);
+ 
+ 						break;

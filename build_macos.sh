@@ -109,6 +109,7 @@ function refetchLibmediasoupclient() {
     pushd $WORK_DIR/libmediasoupclient 
     git apply $PATCHES_DIR/hybrid_callback.patch
     git apply $PATCHES_DIR/datachannel_open.patch
+    git apply $PATCHES_DIR/reduce_codecs_rtx_bounds.patch
     popd
 }
 
