@@ -103,7 +103,15 @@
 }
 
 - (void)close {
-	_producer->Close();
+	// Close renegotiates SDP and throws when the peer connection rejects it
+	NSError *error = nil;
+	mediasoupTry(^{
+		self->_producer->Close();
+	}, &error);
+
+	if (error != nil) {
+		NSLog(@"[Mediasoup] Producer %@ close failed: %@", self.id, error.localizedDescription);
+	}
 }
 
 - (void)setMaxSpatialLayer:(UInt8)layer
