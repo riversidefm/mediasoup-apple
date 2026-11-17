@@ -74,6 +74,8 @@
 		FFC5AC752825025100C92A96 /* MediasoupClientTransportConnectionState.mm in Sources */ = {isa = PBXBuildFile; fileRef = FFC5AC732825025100C92A96 /* MediasoupClientTransportConnectionState.mm */; };
 		FFC5AC762825025100C92A96 /* MediasoupClientTransportConnectionState.h in Headers */ = {isa = PBXBuildFile; fileRef = FFC5AC742825025100C92A96 /* MediasoupClientTransportConnectionState.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FFC5AC782825170500C92A96 /* ConsumerWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = FFC5AC772825170500C92A96 /* ConsumerWrapper.mm */; };
+        AE0000000000000000000011 = {isa = PBXBuildFile; fileRef = AE0000000000000000000013; settings = {ATTRIBUTES = (Public, ); }; };
+        AE0000000000000000000012 = {isa = PBXBuildFile; fileRef = AE0000000000000000000014; settings = {COMPILER_FLAGS = "-fno-rtti"; }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -146,6 +148,8 @@
 		FFCD791727F419E800D26B4C /* mediasoupclient.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = mediasoupclient.xcframework; path = bin/mediasoupclient.xcframework; sourceTree = "<group>"; };
 		FFCD791B27F41A0900D26B4C /* sdptransform.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = sdptransform.xcframework; path = bin/sdptransform.xcframework; sourceTree = "<group>"; };
 		FFCD791C27F41A0900D26B4C /* WebRTC.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = WebRTC.xcframework; path = bin/WebRTC.xcframework; sourceTree = "<group>"; };
+        AE0000000000000000000013 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Mediasoup_Private/Audio/RVSWebRTCAudioProcessor.h; sourceTree = SOURCE_ROOT; };
+        AE0000000000000000000014 = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = Mediasoup_Private/Audio/RVSWebRTCAudioProcessor.mm; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -178,6 +182,8 @@
 		FF3AEDF327F2C92E001A81AB = {
 			isa = PBXGroup;
 			children = (
+                AE0000000000000000000013,
+                AE0000000000000000000014,
 				FF2E23D6285890310008DC19 /* README.md */,
 				FF89EFD627F6AFBD00EEF5CD /* Mediasoup-Client-Swift-Device.podspec */,
 				FF3AEE0227F2CDD1001A81AB /* Mediasoup */,
@@ -324,6 +330,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                AE0000000000000000000011,
 				FFB7DDBD28229BA400FE2CC2 /* ConsumerWrapper.hpp in Headers */,
 				FFC2452527F6EA1C008F61DE /* MediasoupClientMediaKind.h in Headers */,
 				FFC5AC762825025100C92A96 /* MediasoupClientTransportConnectionState.h in Headers */,
@@ -458,6 +465,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                AE0000000000000000000012,
 				FFB7DDB32822893C00FE2CC2 /* ReceiveTransportDelegate.swift in Sources */,
 				FFC5AC782825170500C92A96 /* ConsumerWrapper.mm in Sources */,
 				FFB7DDB12822891C00FE2CC2 /* ReceiveTransport.swift in Sources */,
