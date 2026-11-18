@@ -1,4 +1,5 @@
 module Mediasoup_Private {
+	header "Headers/RVSWebRTCAudioProcessor.h"
 	header "Headers/DeviceWrapper.h"
 	header "Headers/MediasoupClientError.h"
 	header "Headers/MediasoupClientMediaKind.h"
