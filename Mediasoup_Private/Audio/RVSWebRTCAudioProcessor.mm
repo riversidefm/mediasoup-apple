@@ -36,7 +36,9 @@
 }
 
 - (BOOL)processCapture:(const int16_t *)input output:(int16_t *)output delayMilliseconds:(int)delay {
-    if (_apm->set_stream_delay_ms(delay) != 0) return NO;
+    const int status = _apm->set_stream_delay_ms(delay);
+    if (status != webrtc::AudioProcessing::kNoError &&
+        status != webrtc::AudioProcessing::kBadStreamParameterWarning) return NO;
     // This checkout leaves dest untouched when all processing is disabled.
     // Seed it with input and use the supported in-place API in every mode.
     if (input != output) std::memcpy(output, input, _format.num_frames() * sizeof(int16_t));
